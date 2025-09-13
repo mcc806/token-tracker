@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Tracker</title>
+<style>
+/* ---------- Theme ---------- */
+:root{
+  --bg: #0b1220;
+  --bg-soft: #0f172a;
+  --card: #0b1220;
+  --elev: #0f1a2e;
+  --ink: #e5e7eb;
+  --muted: #9aa3b2;
+  --accent: #7c9cff;      /* electric indigo */
+  --accent-2: #22d3ee;    /* cyan */
+  --earn: #34d399;        /* emerald */
+  --loss: #f87171;        /* red */
+  --border: #1f2a40;
+  --chip: #111b30;
+  --shadow: 0 10px 25px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.03);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+  color:var(--ink);
+  background: radial-gradient(1200px 800px at 10% -10%, rgba(124,156,255,.15), transparent 50%),
+              radial-gradient(1200px 800px at 100% 0%, rgba(34,211,238,.10), transparent 50%),
+              linear-gradient(180deg, #0a0f1c, #0b1220);
+  letter-spacing:.2px;
+}
+
+/* ---------- Header / Nav ---------- */
+.nav{
+  position:sticky; top:0; z-index:10;
+  backdrop-filter: blur(10px);
+  background: linear-gradient(180deg, rgba(8,12,24,.9), rgba(8,12,24,.6));
+  border-bottom:1px solid var(--border);
+}
+.nav .wrap{max-width:1100px; margin:0 auto; padding:14px 16px; display:flex; gap:14px; align-items:center; justify-content:space-between}
+.brand{
+  display:flex; align-items:center; gap:12px;
+}
+.logo{
+  width:36px; height:36px; border-radius:10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: var(--shadow);
+  display:grid; place-items:center; font-weight:900; color:#0b1220;
+}
+.title h1{margin:0; font-size: clamp(20px, 3vw, 24px); letter-spacing:.4px}
+.title .sub{margin:0; font-size:12px; color:var(--muted)}
+.actions{display:flex; gap:8px; flex-wrap:wrap}
+.btn{
+  border:1px solid var(--border);
+  color:var(--ink);
+  background: linear-gradient(180deg, #0c1528, #0a1324);
+  padding:10px 12px;
+  border-radius:12px;
+  cursor:pointer;
+  transition: transform .08s ease, box-shadow .2s ease, background .2s ease;
+  box-shadow: var(--shadow);
+}
+.btn:hover{ transform: translateY(-1px); background: linear-gradient(180deg, #0e1a32, #0a1324); }
+.btn.primary{ background: linear-gradient(180deg, var(--accent), #4f7aff); color:#0b1220; border-color:transparent; }
+.btn.outline{ background: transparent; }
+.btn.danger{ background: linear-gradient(180deg, #f87171, #ef4444); color:#0b1220; border-color: transparent; }
+.icon{opacity:.9; margin-right:6px}
+
+/* ---------- Layout ---------- */
+.wrap{max-width:1100px; margin:0 auto; padding:18px 16px}
+.grid{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+@media (max-width:980px){ .grid{grid-template-columns:1fr} }
+
+/* ---------- Cards ---------- */
+.card{
+  border:1px solid var(--border);
+  border-radius:16px;
+  background: linear-gradient(180deg, #0b1220, #0a1324);
+  box-shadow: var(--shadow);
+  overflow:hidden;
+}
+.card .head{
+  padding:14px 16px; border-bottom:1px solid var(--border);
+  background: linear-gradient(180deg, #0f172a, #0b1220);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.card .head h2{margin:0; font-size:16px}
+.card .body{padding:14px 16px}
+
+/* ---------- Summary ---------- */
+.summary{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:18px}
+@media (max-width:700px){ .summary{grid-template-columns:1fr} }
+.stat{
+  border:1px solid var(--border); border-radius:16px; padding:16px;
+  background: linear-gradient(180deg, #0c1528, #0a1324);
+  box-shadow: var(--shadow);
+}
+.stat h3{margin:0 0 6px; color:var(--muted); font-size:13px}
+.num{font-size:28px; font-weight:900}
+.num.earn{color:var(--earn)} .num.loss{color:var(--loss)}
+
+/* ---------- Rows ---------- */
+.list{display:flex; flex-direction:column; gap:10px}
+.row{
+  display:grid; grid-template-columns: 1fr auto auto auto; gap:10px; align-items:center;
+  border:1px solid var(--border); border-radius:12px; padding:12px 12px;
+  background: linear-gradient(180deg, #0b1220, #0a1324);
+  transition: transform .06s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.row:hover{ transform: translateY(-1px); border-color:#284074; box-shadow: 0 8px 22px rgba(28,53,109,.25); }
+.name{font-weight:700; letter-spacing:.3px}
+.value{font-variant-numeric: tabular-nums; font-weight:800}
+.value.earn{color:var(--earn)} .value.loss{color:var(--loss)}
+.count{justify-self:end; background:var(--chip); padding:5px 10px; border-radius:999px; font-size:12px; color:#c3dafe; border:1px solid var(--border)}
+.row .mini{justify-self:end}
+
+/* ---------- History ---------- */
+.history{display:flex; flex-direction:column; gap:10px}
+.hist{
+  display:grid; grid-template-columns:1fr auto auto auto; gap:10px; align-items:center;
+  border:1px dashed var(--border); border-radius:12px; padding:10px 12px;
+  background: linear-gradient(180deg, #0b1220, #0a1324);
+}
+.hist .amt{font-weight:900}
+.amt.earn{color:var(--earn)} .amt.loss{color:var(--loss)}
+small{color:var(--muted)}
+
+/* ---------- Inputs ---------- */
+.inputs{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
+.input{
+  background:#0b1220; color:var(--ink); border:1px solid var(--border);
+  border-radius:12px; padding:10px 12px;
+}
+
+/* ---------- Modal ---------- */
+.modal{ position:fixed; inset:0; display:none; place-items:center; background: rgba(6,10,20,.6); }
+.modal.open{ display:grid; animation: fadeIn .15s ease }
+@keyframes fadeIn{ from{opacity:0} to{opacity:1} }
+.sheet{
+  width:min(980px, 96vw); max-height:92vh; overflow:auto;
+  border:1px solid var(--border); border-radius:18px;
+  background: linear-gradient(180deg, #0b1220, #0a1324);
+  box-shadow: var(--shadow);
+}
+.sheet header{ position:sticky; top:0; background:linear-gradient(180deg, #0f172a, #0b1220); border-bottom:1px solid var(--border); padding:14px 16px; display:flex; align-items:center; justify-content:space-between }
+.sheet .body{ padding:16px }
+.table{ width:100%; border-collapse: collapse }
+.table th, .table td{ border-bottom:1px solid var(--border); padding:10px 8px; text-align:left }
+.table input, .table select{ width:100%; padding:8px 10px; border-radius:10px; border:1px solid var(--border); background:#0b1220; color:var(--ink) }
+.kv{ display:grid; grid-template-columns:200px 1fr; gap:12px; align-items:center }
+hr{ border:0; border-top:1px solid var(--border); margin:16px 0 }
+.badge{ display:inline-block; background:#0f1a30; border:1px solid var(--border); padding:6px 10px; border-radius:999px; font-size:12px; color:#cbd5e1 }
+</style>
+</head>
+<body>
+
+<!-- Top Nav -->
+<nav class="nav">
+  <div class="wrap">
+    <div class="brand">
+      <div class="logo">TT</div>
+      <div class="title">
+        <h1>Token Tracker</h1>
+        <p class="sub">Tap to log. Edit in Settings. Share with your team.</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="btnSettings" class="btn outline"><span class="icon">⚙️</span>Settings</button>
+      <button id="btnExport" class="btn outline"><span class="icon">⬇️</span>Export CSV</button>
+      <button id="btnPrint" class="btn outline"><span class="icon">🖨️</span>Print</button>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+  <!-- Inputs -->
+  <div class="inputs">
+    <input id="student" class="input" placeholder="Student name (optional)">
+    <input id="date" class="input" type="date">
+    <button id="btnNewDay" class="btn">New Day</button>
+    <button id="btnUndo" class="btn">Undo</button>
+    <span id="cloudStatus" class="badge">Local Only</span>
+  </div>
+
+  <!-- Summary -->
+  <section class="summary">
+    <div class="stat">
+      <h3>Tokens Gained</h3>
+      <div id="gained" class="num earn">+$0</div>
+    </div>
+    <div class="stat">
+      <h3>Tokens Lost</h3>
+      <div id="lost" class="num loss">-$0</div>
+    </div>
+    <div class="stat">
+      <h3>Net Balance</h3>
+      <div id="net" class="num">0</div>
+    </div>
+  </section>
+
+  <section class="grid" id="lists"></section>
+
+  <section class="card">
+    <div class="head"><h2>History</h2></div>
+    <div class="body">
+      <div id="history" class="history"></div>
+      <p class="sub">Tip: Export CSV to use with Google Sheets or Excel.</p>
+    </div>
+  </section>
+</main>
+
+<!-- Settings Modal -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <header>
+      <h2 style="margin:0">Settings</h2>
+      <div>
+        <button id="closeModal" class="btn">Close ✕</button>
+      </div>
+    </header>
+    <div class="body">
+      <h3>Behaviors & Values</h3>
+      <table class="table" id="itemsTable">
+        <thead>
+          <tr><th>Type</th><th>Name</th><th>Value</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px">
+        <select id="newType">
+          <option value="earn">Earn</option>
+          <option value="lose">Lose</option>
+        </select>
+        <input id="newName" placeholder="Behavior name">
+        <input id="newValue" type="number" placeholder="Value (e.g., 5 or -5)">
+        <button class="btn primary" id="addItem">Add Item</button>
+      </div>
+
+      <hr>
+
+      <h3>General</h3>
+      <div class="kv">
+        <label>Currency symbol</label>
+        <input id="currency" maxlength="3" placeholder="$">
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px">
+        <button class="btn" id="btnResetDefaults">Reset to Defaults</button>
+        <button class="btn" id="btnExportConfig">Export Settings</button>
+        <input type="file" id="importFile" accept=".json" style="display:none">
+        <button class="btn" id="btnImportConfig">Import Settings</button>
+        <button class="btn" id="btnShareLink">Copy Share Link</button>
+      </div>
+
+      <hr>
+
+      <h3>Cloud Sync (Optional)</h3>
+      <p class="sub">Use Firebase Realtime Database keys + a Room ID to sync with your team.</p>
+      <div class="kv">
+        <label>apiKey</label><input id="fb_apiKey">
+        <label>authDomain</label><input id="fb_authDomain">
+        <label>databaseURL</label><input id="fb_databaseURL" placeholder="https://YOUR-PROJECT-ID-default-rtdb.firebaseio.com">
+        <label>projectId</label><input id="fb_projectId">
+        <label>Room ID</label><input id="fb_roomId" placeholder="e.g., team-101">
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px">
+        <button class="btn primary" id="btnEnableCloud">Enable Cloud Sync</button>
+        <button class="btn" id="btnDisableCloud">Disable Cloud</button>
+        <span class="sub" id="cloudHint"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- Data ---------- */
+const DEFAULT_CONFIG = {
+  currency: "$",
+  items: [
+    {type:"earn", name:"Doing affirmations correctly", value:3},
+    {type:"earn", name:"Doing homework", value:2},
+    {type:"earn", name:"Taking accountability", value:5},
+    {type:"earn", name:"Listening to instructions", value:5},
+    {type:"earn", name:"Using appropriate social skills", value:5},
+    {type:"earn", name:"Waiting your turn to speak", value:4},
+    {type:"earn", name:"Engaging in conversations appropriately", value:4},
+    {type:"earn", name:"Transitioning in less than 10 seconds", value:3},
+    {type:"lose", name:"Saying rude things", value:-5},
+    {type:"lose", name:"Blaming others", value:-10},
+    {type:"lose", name:"Lying", value:-10},
+    {type:"lose", name:"Not taking accountability", value:-10},
+    {type:"lose", name:"Kicking", value:-10},
+    {type:"lose", name:"Hissing", value:-10},
+    {type:"lose", name:"Hitting", value:-10},
+    {type:"lose", name:"Negotiating", value:-10},
+    {type:"lose", name:"Talking over others", value:-8},
+    {type:"lose", name:"Transitioning in more than 10 seconds", value:-5},
+  ]
+};
+const STORAGE_KEY = "token-tracker-redesign-v1";
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+const state = {
+  student: "",
+  date: new Date().toISOString().slice(0,10),
+  log: [],
+  counts: {},
+  cfg: structuredClone(DEFAULT_CONFIG),
+  cloud: {enabled:false, roomId:null}
+};
+
+// Load URL-embedded config if present
+try{
+  if(location.hash.startsWith("#config=")){
+    const json = atob(decodeURIComponent(location.hash.slice(8)));
+    const parsed = JSON.parse(json);
+    if(parsed && parsed.items) state.cfg = parsed;
+  }
+}catch{}
+
+// Storage
+function save(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch{} }
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    const parsed = JSON.parse(raw);
+    Object.assign(state, parsed);
+  }catch{}
+}
+load();
+
+/* ---------- UI Builders ---------- */
+function makeCard(title, items, signClass){
+  const card = document.createElement('section');
+  card.className = 'card';
+  const head = document.createElement('div');
+  head.className = 'head';
+  const h2 = document.createElement('h2'); h2.textContent = title; head.appendChild(h2);
+  card.appendChild(head);
+  const body = document.createElement('div'); body.className = 'body';
+  const list = document.createElement('div'); list.className = 'list';
+  items.forEach(it => {
+    const row = document.createElement('div'); row.className = 'row'; row.tabIndex = 0; row.setAttribute('role','button');
+    const name = document.createElement('div'); name.className = 'name'; name.textContent = it.name;
+    const value = document.createElement('div'); value.className = 'value ' + signClass; value.textContent = (it.value>0?'+':'') + state.cfg.currency + Math.abs(it.value);
+    const count = document.createElement('div'); count.className = 'count'; count.dataset.name = it.name; count.textContent = 'x' + (state.counts[it.name]||0);
+    const btn = document.createElement('button'); btn.className='btn mini'; btn.textContent='Add';
+    const add = () => addEntry(it);
+    btn.addEventListener('click', add);
+    row.addEventListener('click', e => { if(e.target !== btn) add(); });
+    row.addEventListener('keydown', e => { if(e.key==='Enter' || e.key===' ') { e.preventDefault(); add(); }});
+    row.append(name, value, count, btn); list.appendChild(row);
+  });
+  body.appendChild(list); card.appendChild(body); return card;
+}
+
+function renderLists(){
+  const lists = $('#lists'); lists.innerHTML='';
+  const earn = state.cfg.items.filter(i=>i.type==='earn');
+  const lose = state.cfg.items.filter(i=>i.type==='lose');
+  lists.appendChild(makeCard('Earn Tokens ✅', earn, 'earn'));
+  lists.appendChild(makeCard('Lose Tokens 🚫', lose, 'loss'));
+}
+function renderSummary(){
+  const gained = state.log.filter(x=>x.value>0).reduce((a,b)=>a+b.value,0);
+  const lost = -state.log.filter(x=>x.value<0).reduce((a,b)=>a+b.value,0);
+  const net = gained - lost;
+  $('#gained').textContent = `+${state.cfg.currency}${gained}`;
+  $('#lost').textContent = `-${state.cfg.currency}${lost}`;
+  $('#net').textContent = `${net>=0?'+':''}${net}`;
+  $$('.count').forEach(el => el.textContent = 'x' + (state.counts[el.dataset.name]||0));
+}
+function renderHistory(){
+  const host = $('#history'); host.innerHTML='';
+  if(state.log.length===0){
+    const p = document.createElement('p'); p.className='sub'; p.textContent='No entries yet — tap any item to add it.'; host.appendChild(p); return;
+  }
+  state.log.slice().reverse().forEach((e, idx) => {
+    const row = document.createElement('div'); row.className='hist';
+    const label = document.createElement('div'); label.innerHTML = `<strong>${e.name}</strong><br><small>${e.type} • ${new Date(e.ts).toLocaleTimeString()}</small>`;
+    const amt = document.createElement('div'); amt.className = 'amt ' + (e.value>0?'earn':'loss'); amt.textContent = (e.value>0?'+':'-') + state.cfg.currency + Math.abs(e.value);
+    const day = document.createElement('div'); day.innerHTML = `<small>${state.date}</small>`;
+    const del = document.createElement('button'); del.className='btn mini'; del.textContent='Delete';
+    del.addEventListener('click', () => {
+      const realIndex = state.log.length - 1 - idx;
+      const removed = state.log.splice(realIndex,1)[0];
+      state.counts[removed.name] = Math.max(0, (state.counts[removed.name]||0) - 1);
+      pushCloud(); save(); renderSummary(); renderHistory();
+    });
+    row.append(label, amt, day, del); host.appendChild(row);
+  });
+}
+
+/* ---------- Logic ---------- */
+function addEntry(it){
+  state.log.push({ts:Date.now(), name:it.name, value:it.value, type:it.type});
+  state.counts[it.name] = (state.counts[it.name]||0) + 1;
+  pushCloud(); save(); renderSummary(); renderHistory();
+}
+
+/* ---------- Controls ---------- */
+$('#btnUndo').addEventListener('click', () => {
+  const last = state.log.pop();
+  if(last) state.counts[last.name] = Math.max(0, (state.counts[last.name]||0) - 1);
+  pushCloud(); save(); renderSummary(); renderHistory();
+});
+$('#btnNewDay').addEventListener('click', () => {
+  state.date = new Date().toISOString().slice(0,10);
+  pushCloud(); save(); renderSummary(); renderHistory();
+});
+$('#btnExport').addEventListener('click', () => {
+  const rows = [['Student','Date','Time','Type','Behavior','Amount']];
+  const sName = ($('#student').value || state.student || '').replace(/,/g,'');
+  state.log.forEach(e => rows.push([sName, state.date, new Date(e.ts).toLocaleTimeString(), e.type, e.name.replace(/,/g,''), e.value]));
+  const csv = rows.map(r=>r.join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `token_log_${state.date}.csv`; a.click();
+});
+$('#btnPrint').addEventListener('click', () => window.print());
+$('#student').addEventListener('input', e => { state.student = e.target.value; pushCloud(); save(); });
+$('#date').addEventListener('input', e => { state.date = e.target.value; pushCloud(); save(); });
+
+/* ---------- Modal (fully functional) ---------- */
+const modal = $('#modal');
+$('#btnSettings').addEventListener('click', () => { modal.classList.add('open'); refreshSettings(); });
+$('#closeModal').addEventListener('click', () => { modal.classList.remove('open'); });
+modal.addEventListener('click', (e) => { if(e.target === modal) modal.classList.remove('open'); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && modal.classList.contains('open')) modal.classList.remove('open'); });
+
+$('#addItem').addEventListener('click', () => {
+  const type = $('#newType').value;
+  const name = $('#newName').value.trim();
+  const val = Number($('#newValue').value);
+  if(!name || isNaN(val)) return alert('Enter a name and a numeric value.');
+  state.cfg.items.push({type, name, value: val});
+  $('#newName').value=''; $('#newValue').value='';
+  save(); pushCloud(); refreshSettings(); renderLists(); renderSummary();
+});
+$('#btnResetDefaults').addEventListener('click', () => {
+  if(!confirm('Reset items and currency to defaults?')) return;
+  state.cfg = structuredClone(DEFAULT_CONFIG);
+  save(); pushCloud(); refreshSettings(); renderLists(); renderSummary();
+});
+$('#btnExportConfig').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(state.cfg,null,2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'token_settings.json'; a.click();
+});
+$('#btnImportConfig').addEventListener('click', () => $('#importFile').click());
+$('#importFile').addEventListener('change', e => {
+  const file = e.target.files[0]; if(!file) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const cfg = JSON.parse(r.result);
+      if(cfg && cfg.items){ state.cfg = cfg; save(); pushCloud(); refreshSettings(); renderLists(); renderSummary(); }
+      else alert('Invalid config file.');
+    }catch{ alert('Failed to parse JSON.'); }
+  };
+  r.readAsText(file);
+});
+$('#btnShareLink').addEventListener('click', () => {
+  const json = JSON.stringify(state.cfg);
+  const url = location.origin + location.pathname + '#config=' + encodeURIComponent(btoa(json));
+  navigator.clipboard?.writeText(url);
+  alert('Share link copied to clipboard!');
+});
+
+function refreshSettings(){
+  $('#currency').value = state.cfg.currency || '$';
+  const tbody = $('#itemsTable tbody'); tbody.innerHTML='';
+  state.cfg.items.forEach((it, i) => {
+    const tr = document.createElement('tr');
+    const tdT = document.createElement('td');
+    const tdN = document.createElement('td');
+    const tdV = document.createElement('td');
+    const tdA = document.createElement('td');
+
+    const sel = document.createElement('select');
+    sel.innerHTML = '<option value="earn">Earn</option><option value="lose">Lose</option>';
+    sel.value = it.type;
+    sel.addEventListener('change', e => { it.type = e.target.value; save(); pushCloud(); renderLists(); renderSummary(); });
+    tdT.appendChild(sel);
+
+    const nameIn = document.createElement('input'); nameIn.value = it.name;
+    nameIn.addEventListener('input', e => { it.name = e.target.value; save(); pushCloud(); renderLists(); renderSummary(); });
+    tdN.appendChild(nameIn);
+
+    const valIn = document.createElement('input'); valIn.type='number'; valIn.value = it.value;
+    valIn.addEventListener('input', e => { const v = Number(e.target.value); if(!isNaN(v)){ it.value=v; save(); pushCloud(); renderLists(); renderSummary(); } });
+    tdV.appendChild(valIn);
+
+    const rm = document.createElement('button'); rm.className='btn'; rm.textContent='Remove';
+    rm.addEventListener('click', () => {
+      if(!confirm('Remove this item?')) return;
+      state.cfg.items.splice(i,1); save(); pushCloud(); refreshSettings(); renderLists(); renderSummary();
+    });
+    tdA.appendChild(rm);
+
+    tr.append(tdT, tdN, tdV, tdA); tbody.appendChild(tr);
+  });
+}
+$('#currency').addEventListener('input', e => { state.cfg.currency = e.target.value || '$'; save(); pushCloud(); renderLists(); renderSummary(); });
+
+/* ---------- Cloud (optional, same as before) ---------- */
+let fb = null;
+async function enableCloudSync(cfg, roomId){
+  if(!roomId) { alert('Enter a Room ID.'); return; }
+  if(!window.firebase){
+    await Promise.all([
+      loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js'),
+      loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js'),
+      loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js')
+    ]);
+  }
+  try{
+    const app = firebase.apps[0] || firebase.initializeApp(cfg);
+    await firebase.auth().signInAnonymously();
+    const db = firebase.database();
+    const roomRef = db.ref('rooms/'+roomId);
+    state.cloud.enabled = true; state.cloud.roomId = roomId;
+    $('#cloudStatus').textContent = 'Cloud: ' + roomId;
+    $('#cloudStatus').style.background = '#082f49'; // blue bg
+    // Write + listen
+    await roomRef.child('state').set({student:state.student,date:state.date,log:state.log,counts:state.counts,cfg:state.cfg});
+    roomRef.child('state').on('value', snap => {
+      const d = snap.val(); if(!d) return;
+      state.student = d.student || state.student;
+      state.date = d.date || state.date;
+      state.log = Array.isArray(d.log) ? d.log : state.log;
+      state.counts = d.counts || state.counts;
+      state.cfg = d.cfg || state.cfg;
+      save(); renderLists(); renderSummary(); renderHistory();
+    });
+    fb = {roomRef};
+    $('#cloudHint').textContent = 'Active. Share the Room ID with your team.';
+  }catch(e){
+    console.error(e); alert('Cloud sync failed. Check keys/URL.');
+  }
+}
+async function disableCloudSync(){
+  if(fb && fb.roomRef) fb.roomRef.off();
+  fb = null; state.cloud.enabled=false; state.cloud.roomId=null;
+  $('#cloudStatus').textContent = 'Local Only'; $('#cloudHint').textContent = 'Cloud disabled.';
+  save();
+}
+async function pushCloud(){
+  if(fb && state.cloud.enabled && state.cloud.roomId){
+    try{ await fb.roomRef.child('state').set({student:state.student,date:state.date,log:state.log,counts:state.counts,cfg:state.cfg}); }catch{}
+  }
+}
+function loadScript(src){ return new Promise((res, rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
+$('#btnEnableCloud').addEventListener('click', () => {
+  const cfg = {
+    apiKey: $('#fb_apiKey').value.trim(),
+    authDomain: $('#fb_authDomain').value.trim(),
+    databaseURL: $('#fb_databaseURL').value.trim(),
+    projectId: $('#fb_projectId').value.trim(),
+  };
+  const roomId = $('#fb_roomId').value.trim();
+  if(!cfg.apiKey || !cfg.authDomain || !cfg.databaseURL || !cfg.projectId){ alert('Fill all Firebase fields.'); return; }
+  enableCloudSync(cfg, roomId);
+});
+$('#btnDisableCloud').addEventListener('click', () => disableCloudSync());
+
+/* ---------- Init ---------- */
+$('#student').value = state.student || '';
+$('#date').value = state.date;
+renderLists(); renderSummary(); renderHistory();
+</script>
+</body>
+</html>
